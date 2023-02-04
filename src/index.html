@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div id="app" class="class">{{name}}</div>
+    <script src="../dist/vue.js"></script>
+    <script>
+      //viewModel 数据模型
+      //典型的MVVM view vm model
+      let vm = new Vue({
+        el: "#app",
+        data() {
+          return {
+            name: [1, 2, 3],
+          };
+        },
+      });
+      // console.log(vm);
+      // console.log(vm.name);
+      //用户很少通过索引值操作数组 arr[82]=1000 内部就想到不对索引进行拦截，因为消耗严重，内部数组不采用defineProperty
+      //push shift pop unshift reserve sort splice
+      vm.name.push("33");
+    </script>
+  </body>
+</html>
