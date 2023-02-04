@@ -8,7 +8,9 @@ const attribute =
   /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/; // 匹配属性  形如 id="app"
 function start(tagName, attributes) {}
 function end(tagName) {}
-function chars(text) {}
+function chars(text) {
+  console.log(text);
+}
 function parserHTML(html) {
   //<div id="app">1123</div>
   //解析多少，抛弃多少
@@ -76,7 +78,6 @@ function parserHTML(html) {
     if (text) {
       chars(text); //处理文本
       advance(text.length); //前进
-      break;
     }
   }
 }
