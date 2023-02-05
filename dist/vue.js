@@ -125,10 +125,84 @@
     return root;
   }
 
+  var defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g; // 匹配花括号 {{  }}；捕获花括号里面的内容
+  function genProps(attrs) {
+    var str = "";
+    var _loop = function _loop() {
+      var attr = attrs[i];
+      if (attr.name === "style") {
+        var styleObj = {};
+        attr.value.replace(/([^;:]+)\:([^;:]+)/g, function () {
+          console.log(arguments[1], arguments[2]);
+          styleObj[arguments[1]] = arguments[2];
+        });
+        attr.value = styleObj;
+      }
+      str += "".concat(attr.name, ":").concat(JSON.stringify(attr.value), ",");
+    };
+    for (var i = 0; i < attrs.length; i++) {
+      _loop();
+    }
+    //a:1, b:2,最好要将多余的逗号删除
+    return "(".concat(str.slice(0, -1), ")");
+  }
+  function gen(el) {
+    if (el.type == 1) {
+      //如果是节点
+      return generate(c);
+    } else {
+      //如果是文本
+      var text = el.text;
+      // return `_v('${text}')`;
+      if (!defaultTagRE.test(text)) {
+        //如果没匹配到{{}}
+        return "_v('".concat(text, "')");
+      } else {
+        //'hello'+arr+'world' //hello {{arr}} world
+        var tokens = [];
+        var match;
+        var lastIndex = 0;
+        while (match = defaultTagRE.exec(text)) {
+          //看有没有匹配到
+          var index = match.index; //开始索引
+          if (index > _lastIndex) {
+            tokens.push(JSON.stringify(text.slice(_lastIndex, index)));
+          }
+          tokens.push(match[1].trim());
+          var _lastIndex = index + match[0].length;
+        }
+        if (lastIndex < text.length) {
+          tokens.push(JSON.stringify(text.slice(lastIndex))); //把最后的扔进去
+        }
+
+        return "_v(".concat(tokens.join("+"), ")");
+      }
+    }
+  }
+  function genChildren(el) {
+    var children = el.children;
+    if (children) {
+      return children.map(function (c) {
+        return gen(c);
+      }).join(",");
+    }
+  }
+  function generate(el) {
+    // _c('div',{id:'app',a:1},'hello')
+    console.log("----------------");
+    var children = genChildren(el);
+    //遍历树  将树拼接成字符串
+    var code = "_c('".concat(el.tag, "'),").concat(el.attrs.length ? genProps(el.attrs) : "undefined", ")").concat(children ? ",".concat(children) : "");
+    return code;
+  }
+
   //html字符串解析成 对应的脚本来触发
   function compileFunction(template) {
     var root = parserHTML(template);
     console.log(root);
+    //html=>ast(只能描述语法 语法不存在的属性无法描述)=>render函数=>虚拟dom(增加额外属性)=>生成真实dom
+    var code = generate(root);
+    console.log(code);
   }
 
   function _typeof(obj) {
