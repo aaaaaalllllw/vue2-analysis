@@ -1,8 +1,8 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-  typeof define === 'function' && define.amd ? define(factory) :
-  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Vue = factory());
-})(this, (function () { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('stream/consumers')) :
+  typeof define === 'function' && define.amd ? define(['stream/consumers'], factory) :
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Vue = factory(global.consumers));
+})(this, (function (consumers) { 'use strict';
 
   // 以下为vue源码的正则
   var ncname = "[a-zA-Z_][\\-\\.0-9_a-zA-Z]*"; //匹配标签名；形如 abc-123
@@ -149,7 +149,7 @@
   function gen(el) {
     if (el.type == 1) {
       //如果是节点
-      return generate(c);
+      return generate(el);
     } else {
       //如果是文本
       var text = el.text;
@@ -165,11 +165,11 @@
         while (match = defaultTagRE.exec(text)) {
           //看有没有匹配到
           var index = match.index; //开始索引
-          if (index > _lastIndex) {
-            tokens.push(JSON.stringify(text.slice(_lastIndex, index)));
+          if (index > lastIndex) {
+            tokens.push(JSON.stringify(text.slice(lastIndex, index)));
           }
-          tokens.push(match[1].trim());
-          var _lastIndex = index + match[0].length;
+          tokens.push("_s(".concat(match[1].trim(), ")"));
+          lastIndex = index + match[0].length;
         }
         if (lastIndex < text.length) {
           tokens.push(JSON.stringify(text.slice(lastIndex))); //把最后的扔进去
@@ -192,7 +192,8 @@
     console.log("----------------");
     var children = genChildren(el);
     //遍历树  将树拼接成字符串
-    var code = "_c('".concat(el.tag, "'),").concat(el.attrs.length ? genProps(el.attrs) : "undefined", ")").concat(children ? ",".concat(children) : "");
+    var code = "_c('".concat(el.tag, "',").concat(el.attrs.length ? "".concat(genProps(el.attrs)) : "undefined").concat(children ? ",".concat(children) : "", ")");
+    console.log(code);
     return code;
   }
 
@@ -201,8 +202,16 @@
     var root = parserHTML(template);
     console.log(root);
     //html=>ast(只能描述语法 语法不存在的属性无法描述)=>render函数=>虚拟dom(增加额外属性)=>生成真实dom
+
+    //生成代码
     var code = generate(root);
-    console.log(code);
+
+    //生成函数
+    var render = new Function("with(this){return ".concat(code, "}")); //code中会用的数据在vm上
+    // let render = new Function();
+
+    console.log(render.toString());
+    return render;
   }
 
   function _typeof(obj) {
@@ -396,6 +405,21 @@
     observe(data);
   }
 
+  function lifecycleMixin(Vue) {
+    Vue.prototype._update = function () {};
+  }
+  function mountComponent(vm, el) {
+    console.log(vm, el);
+
+    //更新函数 数据变化后 会再次调用此函数
+    var updateComponent = function updateComponent() {
+      //调用render函数，生成虚拟dom
+      vm._update(vm._render()); //后续更新可以调用updateComponent方法
+    };
+
+    updateComponent();
+  }
+
   function initMixin(Vue) {
     Vue.prototype._init = function (options) {
       //el,data
@@ -427,6 +451,52 @@
           options.render = render;
         }
       }
+      //options.render就是渲染函数
+      console.log(options.render); //调用render方法 渲染成真实dom 替换页面的内容
+      mountComponent(vm, el); //组件的挂载流程
+    };
+  }
+
+  function createElement(vm, tag) {
+    var data = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+    for (var _len = arguments.length, children = new Array(_len > 3 ? _len - 3 : 0), _key = 3; _key < _len; _key++) {
+      children[_key - 3] = arguments[_key];
+    }
+    console.log(vm, tag, data, children);
+    return vnode(vm, tag, data, data.key, children, undefined);
+  }
+  function createTextElement() {
+    return vnode(vm, undefined, undefined, undefined, undefined, consumers.text);
+  }
+  function vnode(vm, tag, data, key, children, text) {
+    return {
+      vm: vm,
+      tag: tag,
+      data: data,
+      children: children,
+      text: text
+    };
+  }
+
+  function renderMixin(Vue) {
+    Vue.prototype._c = function () {
+      //createElement
+      return createElement.apply(void 0, [this].concat(Array.prototype.slice.call(arguments)));
+    };
+    Vue.prototype._v = function (text) {
+      //createTextElement
+      return createTextElement();
+    };
+    Vue.prototype._s = function (val) {
+      //stringify
+      return JSON.stringify(val);
+    };
+    Vue.prototype._render = function () {
+      console.log("render");
+      var vm = this;
+      var render = vm.$options.render;
+      var vnode = render.call(vm);
+      return vnode;
     };
   }
 
@@ -434,6 +504,10 @@
     this._init(options);
   }
   initMixin(Vue);
+  //渲染成真实节点_render
+  renderMixin(Vue);
+  //注入生命周期_update
+  lifecycleMixin(Vue);
 
   return Vue;
 

@@ -1,5 +1,6 @@
 import { compileFunction } from "./complier/index";
 import { initState } from "./state";
+import { mountComponent } from "./lifecycle";
 export function initMixin(Vue) {
   Vue.prototype._init = function (options) {
     //el,data
@@ -33,5 +34,8 @@ export function initMixin(Vue) {
         options.render = render;
       }
     }
+    //options.render就是渲染函数
+    console.log(options.render); //调用render方法 渲染成真实dom 替换页面的内容
+    mountComponent(vm, el); //组件的挂载流程
   };
 }

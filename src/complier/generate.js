@@ -19,7 +19,7 @@ function genProps(attrs) {
 function gen(el) {
   if (el.type == 1) {
     //如果是节点
-    return generate(c);
+    return generate(el);
   } else {
     //如果是文本
     let text = el.text;
@@ -38,8 +38,8 @@ function gen(el) {
         if (index > lastIndex) {
           tokens.push(JSON.stringify(text.slice(lastIndex, index)));
         }
-        tokens.push(match[1].trim());
-        let lastIndex = index + match[0].length;
+        tokens.push(`_s(${match[1].trim()})`);
+        lastIndex = index + match[0].length;
       }
       if (lastIndex < text.length) {
         tokens.push(JSON.stringify(text.slice(lastIndex))); //把最后的扔进去
@@ -59,9 +59,9 @@ export function generate(el) {
   console.log("----------------");
   let children = genChildren(el);
   //遍历树  将树拼接成字符串
-  let code = `_c('${el.tag}'),${
-    el.attrs.length ? genProps(el.attrs) : "undefined"
-  })${children ? `,${children}` : ""}`;
-
+  let code = `_c('${el.tag}',${
+    el.attrs.length ? `${genProps(el.attrs)}` : "undefined"
+  }${children ? `,${children}` : ""})`;
+  console.log(code);
   return code;
 }
