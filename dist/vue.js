@@ -11,8 +11,51 @@
   var startTagClose = /^\s*(\/?)>/; // 匹配标签结尾，形如 >、/>
   var endTag = new RegExp("^<\\/".concat(qnameCapture, "[^>]*>")); // 匹配结束标签 如 </abc-123> 捕获里面的标签名
   var attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/; // 匹配属性  形如 id="app"
-  function start(tagName, attributes) {}
-  function end(tagName) {}
+
+  //将解析后的结果，组装成一个树结构
+  function createAstElement(tagName, attrs) {
+    return {
+      tag: tagName,
+      type: 1,
+      children: [],
+      parent: null,
+      attrs: attrs
+    };
+  }
+  var root = null;
+  var stack = [];
+  function start(tagName, attributes) {
+    var parent = stack[stack.length - 1];
+    var element = createAstElement(tagName, attributes);
+    if (!root) {
+      root = element;
+    }
+
+    //压入栈
+    if (parent) {
+      element.parent = parent; //当放入栈中时 父亲是谁
+      parent.children.push(element);
+    }
+    stack.push(element);
+  }
+  function end(tagName) {
+    var last = stack.pop();
+    if (last.tag !== tagName) {
+      throw Error("标签有误");
+    }
+  }
+  function chars(text) {
+    // console.log(text);
+    //文本入栈
+    text = text.replace(/\s/g, ""); //去除文本空格
+    var parent = stack[stack.length - 1];
+    if (text) {
+      parent.children.push({
+        type: 3,
+        text: text
+      });
+    }
+  }
   function parserHTML(html) {
     //<div id="app">1123</div>
     //解析多少，抛弃多少
@@ -64,23 +107,28 @@
         }
         var endTagMatch = html.match(endTag);
         if (endTagMatch) {
-          end(endTagMatch(1));
+          end(endTagMatch[1]);
           advance(endTagMatch[0].length);
         }
       }
       var text = void 0; //1233</div>
+
       if (textEnd > 0) {
         text = html.substring(0, textEnd);
       }
       if (text) {
+        chars(text); //处理文本
         advance(text.length); //前进
-        break;
       }
     }
+
+    return root;
   }
+
   //html字符串解析成 对应的脚本来触发
   function compileFunction(template) {
-    parserHTML(template);
+    var root = parserHTML(template);
+    console.log(root);
   }
 
   function _typeof(obj) {
