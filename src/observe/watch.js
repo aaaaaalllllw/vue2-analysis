@@ -33,4 +33,12 @@ class Watcher {
     this.get();
   }
 }
+
+//watcher 和dep
+//我们将更新的功能封装成一个watcher
+//渲染页面的时候，会将当前wacther放到Dep类上
+//在vue的页面渲染使用的属性，需要进行依赖收集，收集对象的渲染的wacther
+//取值的时候，给每个属性都加个dep属性，用于存储这个渲染wacther(同一个watcher对应多个dep)
+//每个属性可能对应多个视图(多个视图肯定是watcher) 一个属性对应多个watcher
+//dep.denpend()=>通知dep存放watcher=》Dep.target.addDep()=>通知wacther存取dep
 export default Watcher;
