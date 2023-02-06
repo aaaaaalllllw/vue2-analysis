@@ -13,6 +13,7 @@ export function initMixin(Vue) {
 
     if (vm.$options.el) {
       //将数据挂载到模板上
+      console.log(vm.$options);
       vm.$mount(vm.$options.el);
     }
   };
@@ -20,6 +21,8 @@ export function initMixin(Vue) {
   Vue.prototype.$mount = function (el) {
     el = document.querySelector(el);
     const vm = this;
+    vm.$el = el;
+
     const options = vm.$options;
     //把模板转化成对应的渲染函数=》虚拟dom概念：vnode=》diff算法 更新虚拟dom=》产生真实节点，更新
     if (!options.render) {

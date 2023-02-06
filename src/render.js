@@ -10,7 +10,7 @@ export function renderMixin(Vue) {
   };
   Vue.prototype._s = function (val) {
     //stringify
-    return JSON.stringify(val);
+    if (typeof val == "object") return JSON.stringify(val);
   };
   Vue.prototype._render = function () {
     console.log("render");

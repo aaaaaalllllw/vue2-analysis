@@ -300,6 +300,46 @@
     };
   });
 
+  var id$1 = 0;
+  var Dep = /*#__PURE__*/function () {
+    //每个属性都分配一个dep，dep可以存放watcher，watcher存放这个dep
+    function Dep() {
+      _classCallCheck(this, Dep);
+      this.id = id$1++;
+      this.subs = [];
+    }
+    _createClass(Dep, [{
+      key: "depend",
+      value: function depend() {
+        //把dep也给watch，自己把自己存进去了
+        if (Dep.target) {
+          //watcher存放dep
+          Dep.target.addDep(this);
+        }
+      }
+    }, {
+      key: "addSub",
+      value: function addSub(watcher) {
+        this.subs.push(watcher);
+      }
+    }, {
+      key: "notify",
+      value: function notify() {
+        this.subs.forEach(function (watcher) {
+          return watcher.update();
+        });
+      }
+    }]);
+    return Dep;
+  }();
+  Dep.target = null;
+  function pushTarget(watcher) {
+    Dep.target = watcher;
+  }
+  function popTarget() {
+    Dep.target = null;
+  }
+
   //1.如果数据是对象，会将对象不停的递归，进行劫持
   //2.如果是数组，会劫持数组的方法，并对数组中不是基本数据类型进行检测
   var Observer = /*#__PURE__*/function () {
@@ -344,18 +384,28 @@
   function defineReactive(data, key, value) {
     //value有可能是对象
     observe(value); //本身用户默认值是对象，对象套对象 需要递归处理(性能差)
+    var dep = new Dep(); //每个属性都有个dep属性
     Object.defineProperty(data, key, {
       get: function get() {
+        //如何把dep和watcher联系起来
         console.log("get");
+        if (Dep.target) {
+          //依赖收集
+          dep.depend();
+        }
         return value;
       },
       set: function set(newV) {
         console.log("set");
-        observe(newV); //如果用户赋值是一个新对象，需要将这个对象进行劫持
-        value = newV;
+        if (newV !== value) {
+          observe(newV); //如果用户赋值是一个新对象，需要将这个对象进行劫持
+          value = newV;
+          dep.notify(); //告诉当前属性存放的watcher要更新了
+        }
       }
     });
   }
+
   function observe(data) {
     //如果是对象才观察
     if (!isObject(data)) {
@@ -405,8 +455,55 @@
     observe(data);
   }
 
+  var id = 0;
+  var Watcher = /*#__PURE__*/function () {
+    function Watcher(vm, exprOrFn, cb, options) {
+      _classCallCheck(this, Watcher);
+      this.vm = vm;
+      this.exprOrFn = exprOrFn;
+      this.cb = cb;
+      this.options = options;
+      this.id = id++;
+      this.deps = [];
+      this.depsId = new Set();
+
+      //默认应该让exporOrFn执行render(){_c('div),{},_v(hello)}
+      this.getter = exprOrFn;
+      this.get(); //更新初始化 要取值
+    }
+    _createClass(Watcher, [{
+      key: "get",
+      value: function get() {
+        //稍后用户更新时 可以重新调用getter方法
+        pushTarget(this);
+        this.getter();
+        popTarget();
+      }
+    }, {
+      key: "addDep",
+      value: function addDep(dep) {
+        var id = dep.id;
+        if (!this.depsId.has(id)) {
+          this.depsId.add(id);
+          this.deps.push(dep);
+          dep.addSub(this);
+        }
+      }
+    }, {
+      key: "update",
+      value: function update() {
+        this.get();
+      }
+    }]);
+    return Watcher;
+  }();
+
   function lifecycleMixin(Vue) {
-    Vue.prototype._update = function () {};
+    Vue.prototype._update = function (vnode) {
+      //既有初始化，又更新
+      var vm = this;
+      vm.$el = patch(vm.$el, vnode);
+    };
   }
   function mountComponent(vm, el) {
     console.log(vm, el);
@@ -416,8 +513,11 @@
       //调用render函数，生成虚拟dom
       vm._update(vm._render()); //后续更新可以调用updateComponent方法
     };
-
-    updateComponent();
+    //观察者模式，属性是"被观察者" 刷新页面:"观察者"
+    // updateComponent();
+    new Watcher(vm, updateComponent, function () {
+      console.log("更新视图");
+    }, true);
   }
 
   function initMixin(Vue) {
@@ -431,12 +531,14 @@
       initState(vm);
       if (vm.$options.el) {
         //将数据挂载到模板上
+        console.log(vm.$options);
         vm.$mount(vm.$options.el);
       }
     };
     Vue.prototype.$mount = function (el) {
       el = document.querySelector(el);
       var vm = this;
+      vm.$el = el;
       var options = vm.$options;
       //把模板转化成对应的渲染函数=》虚拟dom概念：vnode=》diff算法 更新虚拟dom=》产生真实节点，更新
       if (!options.render) {
@@ -489,7 +591,7 @@
     };
     Vue.prototype._s = function (val) {
       //stringify
-      return JSON.stringify(val);
+      if (_typeof(val) == "object") return JSON.stringify(val);
     };
     Vue.prototype._render = function () {
       console.log("render");

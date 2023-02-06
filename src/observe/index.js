@@ -1,6 +1,6 @@
 import { isObject } from "../util";
 import { arrayMethods } from "./array";
-
+import { Dep } from "./dep";
 //1.如果数据是对象，会将对象不停的递归，进行劫持
 //2.如果是数组，会劫持数组的方法，并对数组中不是基本数据类型进行检测
 class Observer {
@@ -39,15 +39,24 @@ class Observer {
 function defineReactive(data, key, value) {
   //value有可能是对象
   observe(value); //本身用户默认值是对象，对象套对象 需要递归处理(性能差)
+  let dep = new Dep(); //每个属性都有个dep属性
   Object.defineProperty(data, key, {
     get() {
+      //如何把dep和watcher联系起来
       console.log("get");
+      if (Dep.target) {
+        //依赖收集
+        dep.depend();
+      }
       return value;
     },
     set(newV) {
       console.log("set");
-      observe(newV); //如果用户赋值是一个新对象，需要将这个对象进行劫持
-      value = newV;
+      if (newV !== value) {
+        observe(newV); //如果用户赋值是一个新对象，需要将这个对象进行劫持
+        value = newV;
+        dep.notify(); //告诉当前属性存放的watcher要更新了
+      }
     },
   });
 }
