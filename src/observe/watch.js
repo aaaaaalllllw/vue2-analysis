@@ -1,3 +1,4 @@
+import { queueWacther } from "./scheduler";
 import { popTarget, pushTarget } from "./dep";
 let id = 0;
 class Watcher {
@@ -30,6 +31,12 @@ class Watcher {
     }
   }
   update() {
+    //vue中更新操作时异步的
+    //vue每次更新时 this
+    // this.get();
+    queueWacther(this);
+  }
+  run() {
     this.get();
   }
 }

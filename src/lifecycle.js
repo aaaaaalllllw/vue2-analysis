@@ -1,3 +1,4 @@
+import { nextTick } from "./util";
 import Watcher from "./observe/watch";
 export function lifecycleMixin(Vue) {
   Vue.prototype._update = function (vnode) {
@@ -5,6 +6,7 @@ export function lifecycleMixin(Vue) {
     const vm = this;
     vm.$el = patch(vm.$el, vnode);
   };
+  Vue.prototype.$nextTick = nextTick;
 }
 export function mountComponent(vm, el) {
   console.log(vm, el);
