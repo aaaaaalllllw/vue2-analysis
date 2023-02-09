@@ -36,6 +36,7 @@ function timer(flushCallbacks) {
     };
   }
   timerFn();
+  waiting = false;
 }
 
 let waiting = false; //刚开始非等待

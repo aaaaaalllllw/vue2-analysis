@@ -25,6 +25,8 @@ methods.forEach((method) => {
     //如果有新增的内容要进行继续劫持，我需要观测数组的每一项，而不是数组
     //更新操作...todo...
     if (inserted) ob.observeArray(inserted);
-    return result;
+
+    //数组的observe.dep属性
+    ob.dep.notify();
   };
 });
