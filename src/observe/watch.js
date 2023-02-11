@@ -5,22 +5,37 @@ class Watcher {
   constructor(vm, exprOrFn, cb, options) {
     this.vm = vm;
     this.exprOrFn = exprOrFn;
+    this.user = !!options.user;
+    this.lazy = options.lazy;
+    this.dirty = this.lazy;
     this.cb = cb;
     this.options = options;
     this.id = id++;
     this.deps = [];
     this.depsId = new Set();
+    if (typeof exprOrFn == "string") {
+      this.getter = function () {
+        //
+        let path = exprOrFn.split(".");
+        let obj = vm;
+        for (let i = 0; i < path.length; i++) {
+          obj = obj[path[i]];
+        }
+        return obj;
+      };
+    } else {
+      //默认应该让exporOrFn执行render(){_c('div),{},_v(hello)}
+      this.getter = exprOrFn;
+    }
 
-    //默认应该让exporOrFn执行render(){_c('div),{},_v(hello)}
-    this.getter = exprOrFn;
-
-    this.get(); //更新初始化 要取值
+    this.value = this.lazy ? undefined : this.get(); //更新初始化 要取值
   }
   get() {
     //稍后用户更新时 可以重新调用getter方法
     pushTarget(this);
-    this.getter();
+    const value = this.getter().call(this.vm);
     popTarget();
+    return value;
   }
   addDep(dep) {
     let id = dep.id;
@@ -31,13 +46,32 @@ class Watcher {
     }
   }
   update() {
-    //vue中更新操作时异步的
-    //vue每次更新时 this
-    // this.get();
-    queueWacther(this);
+    if (this.lazy) {
+      this.dirty = true;
+    } else {
+      //vue中更新操作时异步的
+      //vue每次更新时 this
+      // this.get();
+      queueWacther(this);
+    }
   }
   run() {
-    this.get();
+    let newValue = this.get();
+    let oldValue = this.value;
+    this.value = newValue;
+    if (this.user) {
+      this.cb.call(this.vm, newValue, oldValue);
+    }
+  }
+  evaluate() {
+    this.dirty = false; //false表示取过值
+    this.value = this.get();
+  }
+  depend() {
+    let i = this.deps.length;
+    while (i--) {
+      this.deps[i].depend(); //lastName,firstName收集渲染wacther
+    }
   }
 }
 

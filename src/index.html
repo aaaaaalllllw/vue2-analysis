@@ -21,19 +21,34 @@
         data() {
           return {
             name: [1, 2, 3],
+            firstName: "zhu",
+            lastName: "feng",
           };
         },
+        methods: {},
+        computed: {
+          //Objecr.defineProperty->getter
+          fullName: {
+            get() {
+              console.log("ooo");
+              return this.firstName + this.lastName;
+            },
+            set(newValue) {
+              console.log(newValue);
+            },
+          },
+        },
+        watch: {
+          name(oldValue, newValue) {
+            console.log(oldValue, newValue);
+          },
+        },
       });
-      // console.log(vm);
-      // console.log(vm.name);
-      //用户很少通过索引值操作数组 arr[82]=1000 内部就想到不对索引进行拦截，因为消耗严重，内部数组不采用defineProperty
-      //push shift pop unshift reserve sort splice
+      //计算属性默认不执行=> Object.defineProperty=>getter
+      //多次取值如果依赖的值不变化  就不会重新执行  vm.fullName
+      //依赖的值变化  需要重新执行  vm.firstname='zhang'
 
-      //数据变化需要影响视图，数据和页面渲染关联起来
-      setTimeout(() => {
-        vm.name.push("123");
-        vm._update(vm._render); //重新调用render方法产生虚拟dom，目前还没有diff
-      }, 1000);
+      //dirty表示这个值是不是脏的true (取值后变为false)，依赖的值变化了dirty=>true
     </script>
   </body>
 </html>

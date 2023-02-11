@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      zf-button {
+        --background-color: black;
+        --text-color: white;
+      }
+    </style>
+  </head>
+
+  <body>
+    <zf-button type="primary">珠峰按钮</zf-button>
+    <zf-button>珠峰按钮</zf-button>
+    <!-- 内容是不会渲染到视图上，不会影响页面展示，可以使用模板 -->
+    <template id="btn">
+      <button class="zf-button">
+        <slot> 默认按钮 </slot>
+      </button>
+    </template>
+    <script>
+      class ZfButton extends HTMLElement {
+        constructor() {
+          super();
+          //沙盒，外面可以看到
+          let shadow = this.attachShadow({ mode: "open" });
+          let btnTmpl = document.getElementById("btn");
+          let cloneTemplate = btnTmpl.content.cloneNode(true);
+
+          //获取标签属性，这里获取的是类型
+          let type = this.getAttribute("type") || "default";
+          const btnList = {
+            primary: {
+              background: "#000 ",
+              color: "#fff",
+            },
+            default: {
+              background: "#090399",
+              color: "#fff",
+            },
+          };
+          const style = document.createElement("style");
+          style.textContent = `
+            .zf-button{
+                outline:none;
+                border:none;
+                border-radius:20px;
+                padding:5px 20px;
+                display:inline-flex;
+                background:var(--background-color,${btnList[type].background});
+                color:ar(--text-color,${btnList[type].color});
+            }
+          `;
+          shadow.appendChild(style);
+          //dom操作具备移动型
+          shadow.appendChild(cloneTemplate);
+        }
+      }
+      //可以定义元素
+      window.customElements.define("zf-button", ZfButton);
+    </script>
+  </body>
+</html>
