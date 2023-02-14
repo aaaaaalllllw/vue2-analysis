@@ -2,6 +2,7 @@ import { initMixin } from "./init";
 import { lifecycleMixin } from "./lifecycle";
 import { renderMixin } from "./render";
 import { stateMixin } from "./state";
+import { initGlobalApi } from "./global-api/index";
 function Vue(options) {
   this._init(options);
 }
@@ -12,5 +13,8 @@ renderMixin(Vue);
 lifecycleMixin(Vue);
 //注入watch,$wacth
 stateMixin(Vue);
+
+//在类上扩展的Vue.mixin
+initGlobalApi(Vue);
 
 export default Vue;

@@ -1,15 +1,17 @@
 import { compileFunction } from "./complier/index";
 import { initState } from "./state";
-import { mountComponent } from "./lifecycle";
+import { mountComponent, callHook } from "./lifecycle";
+import { mergeOptions } from "./util";
 export function initMixin(Vue) {
   Vue.prototype._init = function (options) {
     //el,data
     let vm = this;
-    vm.$options = options;
-    console.log(vm);
+    vm.$options = mergeOptions(this.constructor.options, options);
+    callHook(vm, "beforeCreate");
 
     //对数据做初始化 watch computed props data
     initState(vm);
+    callHook(vm, "created");
 
     if (vm.$options.el) {
       //将数据挂载到模板上
@@ -32,10 +34,10 @@ export function initMixin(Vue) {
         //用户也没有传递template 就取el的内容作为template
         template = el.outerHTML;
         console.log(template);
-        //把模板变成渲染函数，render返回h
-        let render = compileFunction(template);
-        options.render = render;
       }
+      //把模板变成渲染函数，render返回h
+      let render = compileFunction(template);
+      options.render = render;
     }
     //options.render就是渲染函数
     console.log(options.render); //调用render方法 渲染成真实dom 替换页面的内容
