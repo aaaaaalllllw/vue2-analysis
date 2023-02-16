@@ -17,4 +17,12 @@ stateMixin(Vue);
 //在类上扩展的Vue.mixin
 initGlobalApi(Vue);
 
+// import { compileFunction } from "./complier/index";
+// //diff  核心
+// let oldTemplate = `<div>{{message}}</div>`;
+// let vm1 = new Vue({ data: { message: "hello world" } });
+// const render1 = compileFunction(oldTemplate);
+// const oldVnode = render1.call(vm1);
+// console.log(oldVnode);
+
 export default Vue;
