@@ -70,7 +70,22 @@ function patchChildren(el, oldChildren, newChildren) {
   let newStartVnode = newChildren[0];
   let newEndIndex = newChildren.length - 1;
   let newEndVnode = newChildren[newEndIndex];
+  const makeIndexByKey = (children) => {
+    return children.reduce((memo, current, index) => {
+      if (current.key) {
+        memo[current.key] = index;
+      }
+      return memo;
+    }, {});
+  };
+  const keysMap = makeIndexByKey(oldChildren);
   while (oldStartIndex <= oldEndIndex && newStartIndex <= newEndIndex) {
+    if (!oldStartIndex) {
+      //节点被移走了直接++
+      oldStartVnode = oldChildren[++oldStartIndex];
+    } else if (!oldEndVnode) {
+      oldEndVnode = oldChildren[--oldEndIndex];
+    }
     //同时循环新的节点和老的节点，有一方循环完毕就结束
     if (isSameVnode(oldStartVnode, newStartVnode)) {
       //头头比较
@@ -95,6 +110,20 @@ function patchChildren(el, oldChildren, newChildren) {
       patch(oldEndVnode, newEndVnode);
       el.insertBefore(oldEndVnode.el, oldStartVnode.el);
       oldEndVnode = oldChildren[--oldEndIndex];
+      newStartVnode = newChildren[++newStartIndex];
+    } else {
+      //乱序比对
+      //1.需要根据key和对应的索引将老的内容生成映射表
+      let moveIndex = keysMap[newStartVnode.key]; //用新的去老的找
+      if (moveIndex == undefined) {
+        //如果不能复用直接创建新的插到老的
+        el.insertBefore(createElm(newStartVnode), oldStartVnode.el);
+      } else {
+        let moveNode = oldChildren[moveIndex];
+        oldChildren[moveIndex] = null; //防止内容塌陷
+        el.insertBefore(moveNode.el, oldStartVnode.el);
+        patch(moveNode, newStartVnode); //比较两个节点属性
+      }
       newStartVnode = newChildren[++newStartIndex];
     }
   }

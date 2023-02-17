@@ -1,9 +1,17 @@
 import { nextTick } from "./util";
 import Watcher from "./observe/watch";
+import { patch } from "./vdom/patch";
 export function lifecycleMixin(Vue) {
   Vue.prototype._update = function (vnode) {
     //既有初始化，又更新
     const vm = this;
+    const preVnode = vm._vnode; //表示当前的虚拟节点保存起来
+    if (!preVnode) {
+      vm.$el = patch(vm.$el, vnode);
+      vm._vnode = vnode;
+    } else {
+      patch(preVnode, vnode);
+    }
     vm.$el = patch(vm.$el, vnode);
   };
   Vue.prototype.$nextTick = nextTick;
